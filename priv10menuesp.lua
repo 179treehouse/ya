@@ -1,5 +1,6 @@
--- finobe didnt make this, all me. 
-    local uis = game:GetService("UserInputService") 
+-- thank u finobe for library but thanks to me for making it priv asf. 😍
+
+	local uis = game:GetService("UserInputService") 
     local players = game:GetService("Players") 
     local ws = game:GetService("Workspace")
     local rs = game:GetService("ReplicatedStorage")
@@ -992,8 +993,10 @@
             local center_name = page.center_label or page.label
             local right_name = page.right_label or (page.label .. " options")
 
-            local center_section = visuals_center:section({name = center_name, auto_fill = true, size = 1})
-            local right_section = visuals_right:section({name = right_name, auto_fill = true, size = 1})
+            local auto_fill = page.auto_fill ~= false
+
+            local center_section = visuals_center:section({name = center_name, auto_fill = auto_fill, size = 1})
+            local right_section = visuals_right:section({name = right_name, auto_fill = auto_fill, size = 1})
 
             center_section.frame.Visible = false
             right_section.frame.Visible = false
@@ -3272,7 +3275,7 @@
                 misc_section:dropdown({name = "fov", flag = "aimbot_fov_circle", items = {"off", "circle"}, default = "circle"})
                 misc_section:colorpicker({name = "fov color", flag = "aimbot_fov_color", color = rgb(255, 255, 255)})
 
-                local movement_section = misc_left:section({name = "movement", size = 1, default = true})
+                local movement_section = misc_left:section({name = "movement", size = 1, default = true, auto_fill = true})
                 movement_section:keybind({
                     name = "speedhack",
                     flag = "speedhack_key",
@@ -3284,7 +3287,7 @@
 
                 local fov_section = misc_center:section({name = "fov changer", auto_fill = true, size = 1})
                 fov_section:toggle({name = "enabled", flag = "fov_changer_enabled", default = false, enabled = false})
-                fov_section:slider({name = "amount", flag = "fov_changer_amount", min = 60, max = 140, default = 90, interval = 1, suffix = ""})
+                fov_section:slider({name = "amount", flag = "fov_changer_amount", min = 60, max = 120, default = 90, interval = 1, suffix = ""})
                 fov_section:keybind({
                     name = "zoom key",
                     flag = "fov_changer_zoom_key",
@@ -3474,7 +3477,7 @@ library:apply_theme(selection_section.frame, tostring(selection_section.count), 
 local visuals_pages = {}
 local pages = {
     {id = "player", label = "player", center_label = "filter (players)", right_label = "options (player)"},
-    {id = "misc", label = "misc"},
+    {id = "misc", label = "world", center_label = "world", right_label = "fog", auto_fill = false},
 }
 
 for _, page in next, pages do
@@ -3571,6 +3574,50 @@ do
         model_outline.frame.Visible = false
     end
 end
+
+do
+    local world_page = visuals_pages["misc"]
+    if world_page and world_page.center and world_page.right then
+        local c = world_page.center
+        local r = world_page.right
+
+        c:toggle({name = "enabled", flag = "world_enabled", default = false})
+        c:slider({name = "clock time", flag = "world_clock_time", min = 0, max = 24, default = 19.7, interval = 0.1, suffix = ""})
+        c:slider({name = "brightness", flag = "world_brightness", min = -20, max = 20, default = 20, interval = 0.1, suffix = ""})
+        c:toggle({name = "global shadows", flag = "world_global_shadows", default = true})
+        c:slider({name = "exposure", flag = "world_exposure", min = -20, max = 20, default = -1, interval = 0.1, suffix = ""})
+        c:colorpicker({name = "ambient", flag = "world_ambient", color = rgb(75, 136, 174)})
+
+        r:toggle({name = "enabled", flag = "fog_enabled", default = false})
+        r:colorpicker({name = "color", flag = "fog_color", color = rgb(88, 85, 160)})
+        r:slider({name = "start", flag = "fog_start", min = 1, max = 500, default = 35, interval = 1, suffix = ""})
+        r:slider({name = "end", flag = "fog_end", min = 100, max = 5000, default = 1200, interval = 100, suffix = ""})
+    end
+end
+
+run.Heartbeat:Connect(function()
+    if flags["world_enabled"] then
+        lighting.ClockTime = flags["world_clock_time"] or 1
+        lighting.Brightness = flags["world_brightness"] or 2
+        lighting.GlobalShadows = flags["world_global_shadows"] ~= false
+        lighting.ExposureCompensation = flags["world_exposure"] or 0
+
+        local ambient = flags["world_ambient"]
+        if type(ambient) == "table" and ambient.Color then
+            lighting.Ambient = ambient.Color
+        end
+    end
+
+    if flags["fog_enabled"] then
+        local fog_color = flags["fog_color"]
+        if type(fog_color) == "table" and fog_color.Color then
+            lighting.FogColor = fog_color.Color
+        end
+
+        lighting.FogStart = flags["fog_start"] or 11
+        lighting.FogEnd = flags["fog_end"] or 6000
+    end
+end)
 
 library:set_visuals_page("player")
 
@@ -4462,6 +4509,20 @@ end)
                 return true
             end
 
+            local LOCAL_ESP_COLOR = rgb(31, 236, 66)
+
+            local function esp_color(v, flag_value)
+                if v == players.LocalPlayer then
+                    return LOCAL_ESP_COLOR
+                end
+
+                if type(flag_value) == "table" and flag_value.Color then
+                    return flag_value.Color
+                end
+
+                return flag_value
+            end
+
             function esp.refresh_elements( )
                 for _,v in players:GetPlayers() do 
                     local path = esp[v.Name]
@@ -4506,7 +4567,7 @@ end)
                     objects.holder.Parent = is_enabled and esp.screengui or esp.cache
 
                     objects[ "name" ].Parent = flags["Names"] and objects["holder"] or esp.cache
-                    objects[ "name" ].TextColor3 = flags["Name_Color"].Color
+                    objects[ "name" ].TextColor3 = esp_color(v, flags["Name_Color"])
 
                     local is_corner = flags[ "Box_Type" ] == "Corner"
 
@@ -4520,9 +4581,9 @@ end)
                         objects[ "box_outline" ].Parent = esp.cache
                     end 
 
-                    objects[ "box_color" ].Color = flags["Box_Color"].Color 
+                    objects[ "box_color" ].Color = esp_color(v, flags["Box_Color"])
                     objects[ "outline_stroke" ].Transparency = 0
-                    objects[ "flag" ].TextColor3 = flags["Distance_Color"].Color
+                    objects[ "flag" ].TextColor3 = esp_color(v, flags["Distance_Color"])
                     objects[ "flag" ].Parent = flags[ "player_flags" ] and objects[ "holder" ] or esp.cache
 
                     local model_mode = flags["player_model"] or "off"
@@ -4555,23 +4616,23 @@ end)
 
                     for _, corner in objects[ "corners" ]:GetChildren() do
                         if corner:IsA("GuiObject") then
-                            corner.BackgroundColor3 = flags["Box_Color"].Color
+                            corner.BackgroundColor3 = esp_color(v, flags["Box_Color"])
                         end
                     end
 
                     local menu_open = window.main_outline and window.main_outline.Visible
 
                     for _, line in path.drawings do
-                        line.Color = flags["Skeletons_Color"].Color
+                        line.Color = esp_color(v, flags["Skeletons_Color"])
                         line.Visible = flags["Skeletons"] and is_enabled and not menu_open
                     end
 
                     objects[ "healthbar_holder" ].Parent = flags[ "Healthbar" ] and objects[ "holder" ] or esp.cache
 
-                    objects[ "weapon" ].TextColor3 = flags["Weapon_Color"].Color
+                    objects[ "weapon" ].TextColor3 = esp_color(v, flags["Weapon_Color"])
                     objects[ "weapon" ].Parent = flags["Weapon"] and v.Character:FindFirstChildOfClass("Tool") and objects[ "holder" ] or esp.cache
 
-                    objects[ "distance" ].TextColor3 = flags["Distance_Color"].Color
+                    objects[ "distance" ].TextColor3 = esp_color(v, flags["Distance_Color"])
                     objects[ "distance" ].Parent = flags["Distance"] and objects[ "holder" ] or esp.cache
 
                     path.refresh_offsets()
