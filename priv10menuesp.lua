@@ -59,8 +59,8 @@ math.random local N=
 math.pow local O=
 math.sin local P=
 math.pi
-local Q=math.tan local R=
-math.atan2
+local Q=math.tan
+local R=math.atan2
 local S=math.clamp
 
 local T=table.insert
@@ -2631,6 +2631,7 @@ BackgroundColor3=v(255,255,255)
 
 library:create("UIGradient",{
 Parent=aC;
+Rotation=0;
 Transparency=A{B(0,0),B(1,1)}
 });
 
@@ -3280,14 +3281,17 @@ av:dropdown{name="fov",flag="aimbot_fov_circle",items={"off","circle"},default="
 av:colorpicker{name="fov color",flag="aimbot_fov_color",color=v(255,255,255)}
 
 local aw=ap:section{name="movement",size=1,default=true,auto_fill=true}
+aw:keybind{name="noclip",flag="noclip_key",key=Enum.KeyCode.None,mode="toggle"}
+aw:keybind{name="airstuck",flag="force_stuck",key=Enum.KeyCode.None,mode="toggle"}
 aw:keybind{
 name="speedhack",
 flag="speedhack_key",
 key=Enum.KeyCode.X,
-mode="hold",
+mode="toggle",
 }
-aw:slider{name="speed",flag="speedhack_speed",min=12,max=200,default=16,interval=1,suffix="studs/s"}
+aw:slider{name="speed",flag="speedhack_speed",min=12,max=200,default=16,interval=1,suffix=""}
 aw:toggle{name="jump restriction",flag="no_jump_restrictions",default=false,enabled=false}
+
 
 local ax=as:section{name="fov changer",auto_fill=true,size=1}
 ax:toggle{name="enabled",flag="fov_changer_enabled",default=false,enabled=false}
@@ -3482,6 +3486,7 @@ local aG={}
 local aH={
 {id="player",label="player",center_label="filter (players)",right_label="options (player)"},
 {id="misc",label="world",center_label="world",right_label="fog",auto_fill=false},
+{id="name_misc",label="misc",center_label="fonts",right_label="misc options",auto_fill=false},
 }
 
 for aI,aJ in next,aH do
@@ -3544,20 +3549,18 @@ aK:colorpicker{name="offscreen color",flag="player_offscreen_color"}
 
 local aL,aM
 
-aK:dropdown{name="model",flag="player_model",items={"off","ontop","occluded"},default="off",callback=function(aN)
-local aO=aN~="off"
-
+aK:toggle{name="chams",flag="chams_enabled",default=false,callback=function(aN)
 if aL and aL.frame then
-aL.frame.Visible=aO
-if not aO then
+aL.frame.Visible=aN
+if not aN then
 aL.open=false
 aL.set_visible(false)
 end
 end
 
 if aM and aM.frame then
-aM.frame.Visible=aO
-if not aO then
+aM.frame.Visible=aN
+if not aN then
 aM.open=false
 aM.set_visible(false)
 end
@@ -3566,11 +3569,11 @@ end
 if al then al.refresh_elements()end
 end}
 
-aL=aK:colorpicker{name="fill",flag="player_highlight_fill",color=v(255,255,255),callback=function()
+aL=aK:colorpicker{name="occluded",flag="chams_occluded",color=v(7,255,49),alpha=0.88,callback=function()
 if al then al.refresh_elements()end
 end}
 
-aM=aK:colorpicker{name="outline",flag="player_highlight_outline",color=v(0,0,0),callback=function()
+aM=aK:colorpicker{name="visible",flag="chams_visible",color=v(255,0,0),alpha=1,callback=function()
 if al then al.refresh_elements()end
 end}
 
@@ -3776,106 +3779,139 @@ end
 
 local aS={autojump=nil,jumppower=nil,jumpheight=nil}
 local aT=false
+local aU=false
 
-g.Stepped:Connect(function(aU,aV)
-local aW=D.Character
-if not aW then
-return
-end
-
-local aX=aW:FindFirstChildOfClass"Humanoid"
+g.Stepped:Connect(function(aV,aW)
+local aX=D.Character
 if not aX then
 return
 end
 
-local aY=ac.speedhack_key
-local Y=type(aY)=="table"and aY.active or false
-
-if Y then
-local Z=aX.RootPart or aW:FindFirstChild"HumanoidRootPart"
-if Z and aX.Health>0 then
-local _=aX.MoveDirection
-if _.Magnitude>0 then
-
-local aZ=S(ac.speedhack_speed or 16,1,200)
-Z.CFrame=Z.CFrame+_*(aZ*aV)
-end
-end
+local aY=aX:FindFirstChildOfClass"Humanoid"
+if not aY then
+return
 end
 
-local aZ=ac.no_jump_restrictions==true
+local Y=ac.noclip_key
+local Z=type(Y)=="table"and Y.active or false
 
+if Z then
+for _,aZ in pairs(aX:GetDescendants())do
+if aZ:IsA"BasePart"then
+aZ.CanCollide=false
+end
+end
+local aZ=aY.RootPart or aX:FindFirstChild"HumanoidRootPart"
 if aZ then
-if not aT then
-aS.autojump=aX.AutoJumpEnabled
-if aX.UseJumpPower then
-aS.jumppower=aX.JumpPower
+aY:ChangeState(Enum.HumanoidStateType.Running)
+end
 else
-aS.jumpheight=aX.JumpHeight
+for aZ,_ in pairs(aX:GetDescendants())do
+if _:IsA"BasePart"then
+_.CanCollide=true
+end
+end
+end
+
+local aZ=ac.speedhack_key
+local _=type(aZ)=="table"and aZ.active or false
+
+if _ then
+local a_=aY.RootPart or aX:FindFirstChild"HumanoidRootPart"
+if a_ and aY.Health>0 then
+local a0=aY.MoveDirection
+if a0.Magnitude>0 then
+
+local a1=S(ac.speedhack_speed or 16,1,200)
+a_.CFrame=a_.CFrame+a0*(a1*aW)
+end
+end
+end
+
+local a_=ac.no_jump_restrictions==true
+
+if a_ then
+if not aT then
+aS.autojump=aY.AutoJumpEnabled
+if aY.UseJumpPower then
+aS.jumppower=aY.JumpPower
+else
+aS.jumpheight=aY.JumpHeight
 end
 aT=true
 end
 
-aX.AutoJumpEnabled=true
-aX.JumpHeight=50
-aX.JumpPower=50
+aY.AutoJumpEnabled=true
+aY.JumpHeight=50
+aY.JumpPower=50
 
-if a:IsKeyDown(Enum.KeyCode.Space)then
-aX:ChangeState(Enum.HumanoidStateType.Jumping)
+local a0=a:IsKeyDown(Enum.KeyCode.Space)
+if a0 and not aU then
+aY:ChangeState(Enum.HumanoidStateType.Jumping)
 end
+aU=a0
 elseif aT then
-aX.AutoJumpEnabled=aS.autojump
-if aX.UseJumpPower then
-aX.JumpPower=aS.jumppower
+aY.AutoJumpEnabled=aS.autojump
+if aY.UseJumpPower then
+aY.JumpPower=aS.jumppower
 else
-aX.JumpHeight=aS.jumpheight
+aY.JumpHeight=aS.jumpheight
 end
 aT=false
+aU=false
+end
+
+local a0=ac.force_stuck
+if type(a0)=="table"and a0.active then
+local a1=aY.RootPart or aX:FindFirstChild"HumanoidRootPart"
+if a1 and aY.Health>0 then
+a1.AssemblyLinearVelocity=Vector3.new(0,0,0)
+end
 end
 end)
 
-local aU
+local aV
 
 
 local function get_aimbot_color()
-local aV=ac.aimbot_fov_color
-if type(aV)=="table"and aV.Color then
-return aV.Color
-elseif typeof(aV)=="Color3"then
-return aV
+local aW=ac.aimbot_fov_color
+if type(aW)=="table"and aW.Color then
+return aW.Color
+elseif typeof(aW)=="Color3"then
+return aW
 end
 return v(255,255,255)
 end
 
-local function get_aimbot_hit_part(aV)
-local aW=ac.aimbot_hitbox or"body"
-if aW=="head"and aV:FindFirstChild"Head"then
-return aV.Head
+local function get_aimbot_hit_part(aW)
+local aX=ac.aimbot_hitbox or"body"
+if aX=="head"and aW:FindFirstChild"Head"then
+return aW.Head
 end
-return aV:FindFirstChild"HumanoidRootPart"
+return aW:FindFirstChild"HumanoidRootPart"
 end
 
-local function is_valid_aimbot_target(aV)
-if aV==D then
+local function is_valid_aimbot_target(aW)
+if aW==D then
 return false
 end
 
-if not aV.Character or not aV.Character.Parent then
+if not aW.Character or not aW.Character.Parent then
 return false
 end
 
-local aW=aV.Character:FindFirstChildOfClass"Humanoid"
-if not aW or aW.Health<=0 then
+local aX=aW.Character:FindFirstChildOfClass"Humanoid"
+if not aX or aX.Health<=0 then
 return false
 end
 
-local aX=aV.Character:FindFirstChild"HumanoidRootPart"
-if not aX then
+local aY=aW.Character:FindFirstChild"HumanoidRootPart"
+if not aY then
 return false
 end
 
-local aY=D.Team
-if aY and aV.Team==aY then
+local aZ=D.Team
+if aZ and aW.Team==aZ then
 return ap==true
 end
 
@@ -3883,71 +3919,71 @@ return true
 end
 
 local function get_closest_aimbot_target()
-local aV
-local aW=math.huge
-local aX=get_effective_aimbot_fov()
-local aY=ac.aimbot_max_distance or 0
-local aZ=Vector2.new(C.ViewportSize.X/2,C.ViewportSize.Y/2)
+local aW
+local aX=math.huge
+local aY=get_effective_aimbot_fov()
+local aZ=ac.aimbot_max_distance or 0
+local a_=Vector2.new(C.ViewportSize.X/2,C.ViewportSize.Y/2)
 
-for Y,Z in ipairs(b:GetPlayers())do
-if is_valid_aimbot_target(Z)and Z.Character then
-local _=get_aimbot_hit_part(Z.Character)
-if _ then
-local a_=Z.Character:FindFirstChild"HumanoidRootPart"
-if a_ then
-local a0=(a_.Position-C.CFrame.Position).Magnitude
-if aY>0 and a0>aY then
+for a0,a1 in ipairs(b:GetPlayers())do
+if is_valid_aimbot_target(a1)and a1.Character then
+local Y=get_aimbot_hit_part(a1.Character)
+if Y then
+local Z=a1.Character:FindFirstChild"HumanoidRootPart"
+if Z then
+local _=(Z.Position-C.CFrame.Position).Magnitude
+if aZ>0 and _>aZ then
 continue
 end
 
-local a1,a2=C:WorldToScreenPoint(_.Position)
-if not a2 then
+local a2,a3=C:WorldToScreenPoint(Y.Position)
+if not a3 then
 continue
 end
 
-local a3=e:GetGuiInset()
-a1=Vector2.new(a1.X+a3.X,a1.Y+a3.Y)
+local a4=e:GetGuiInset()
+a2=Vector2.new(a2.X+a4.X,a2.Y+a4.Y)
 
-local a4=(a1-aZ).Magnitude
-if a4<=aX and a4<aW then
-aW=a4
-aV=Z
+local a5=(a2-a_).Magnitude
+if a5<=aY and a5<aX then
+aX=a5
+aW=a1
 end
 end
 end
 end
 end
 
-return aV
+return aW
 end
 
 local function update_aimbot_circle()
-local aV=ac.aimbot_fov_circle or"off"
+local aW=ac.aimbot_fov_circle or"off"
 
-if aV=="circle"then
-if not aU then
-aU=Drawing.new"Circle"
-aU.Thickness=1
-aU.NumSides=64
-aU.Filled=false
-aU.Transparency=1
+if aW=="circle"then
+if not aV then
+aV=Drawing.new"Circle"
+aV.Thickness=1
+aV.NumSides=64
+aV.Filled=false
+aV.Transparency=1
 end
 
-aU.Visible=true
-aU.Position=Vector2.new(C.ViewportSize.X/2,C.ViewportSize.Y/2)
-aU.Radius=get_effective_aimbot_fov()
-aU.Color=get_aimbot_color()
+aV.Visible=true
+aV.Position=Vector2.new(C.ViewportSize.X/2,C.ViewportSize.Y/2)
+aV.Radius=get_effective_aimbot_fov()
+aV.Color=get_aimbot_color()
 else
-if aU then
-aU:Remove()
-aU=nil
+if aV then
+aV:Remove()
+aV=nil
 end
 end
 end
 
 local function is_aim_key_active()
-local aV=ac.aim_key
-return aV and aV.active
+local aW=ac.aim_key
+return aW and aW.active
 end
 
 
@@ -3970,33 +4006,33 @@ if ac.aimbot_fov_color==nil then ac.aimbot_fov_color={Color=v(255,255,255)}end
 g:BindToRenderStep("PrivAimbot",Enum.RenderPriority.Character.Value,function()
 update_aimbot_circle()
 
-local aV=false
+local aW=false
 
 if am and is_aim_key_active()then
-local aW=get_closest_aimbot_target()
-if aW and aW.Character then
-local aX=get_aimbot_hit_part(aW.Character)
-if aX and not ao then
-local aY=C.CFrame
-local aZ=aY.Position
-local a_=aX.Position
+local aX=get_closest_aimbot_target()
+if aX and aX.Character then
+local aY=get_aimbot_hit_part(aX.Character)
+if aY and not ao then
+local aZ=C.CFrame
+local a_=aZ.Position
+local a0=aY.Position
 
-local a0=CFrame.lookAt(aZ,a_,aY.UpVector)
+local a1=CFrame.lookAt(a_,a0,aZ.UpVector)
 
-local a1=ac.aimbot_smooth or 0
-local a2=a1<=0 and 1 or math.clamp(1/(a1+1),0.01,1)
-C.CFrame=C.CFrame:Lerp(a0,a2)
+local a2=ac.aimbot_smooth or 0
+local a3=a2<=0 and 1 or math.clamp(1/(a2+1),0.01,1)
+C.CFrame=C.CFrame:Lerp(a1,a3)
 
 if X:IsActive()then
 X:SetOverride(C.CFrame)
 end
 
-aV=true
+aW=true
 end
 end
 end
 
-if not aV then
+if not aW then
 X:ClearOverride()
 end
 end)
@@ -4006,7 +4042,7 @@ task.wait(1)
 ag:create_notification{name="welcome "..string.lower(game.Players.LocalPlayer.Name).."!"}
 end)
 
-local aV={
+local aW={
 
 {"Head","UpperTorso"},
 {"UpperTorso","LowerTorso"},
@@ -4038,25 +4074,61 @@ if ac.player_local==nil then ac.player_local=true end
 if ac.player_teammates==nil then ac.player_teammates=false end
 if ac.player_max_distance==nil then ac.player_max_distance=0 end
 
-if ac.player_model==nil then ac.player_model="off"end
-ac.player_highlight_fill=ac.player_highlight_fill or{Color=v(255,255,255),Transparency=0}
-ac.player_highlight_outline=ac.player_highlight_outline or{Color=v(0,0,0),Transparency=0}
+if ac.chams_enabled==nil then ac.chams_enabled=false end
+ac.chams_occluded=ac.chams_occluded or{Color=v(7,255,49),Transparency=0.12}
+ac.chams_visible=ac.chams_visible or{Color=v(255,0,0),Transparency=0}
+if ac.player_offscreen==nil then ac.player_offscreen=false end
+ac.player_offscreen_color=ac.player_offscreen_color or{Color=v(255,255,255),Transparency=0}
 
-local aW={};do
-local aX=Register_Font("TahomaBold",700,"Normal",{
+local aX={};do
+local aY=Register_Font("TahomaBold",700,"Normal",{
 Id="TahomaBold.ttf",
 Font=game:HttpGet"https://github.com/i77lhm/storage/raw/refs/heads/main/fonts/tahoma_bold.ttf",
 })
 
-local aY=Register_Font("SmallestPixel",400,"Normal",{
+local aZ=Register_Font("SmallestPixel",400,"Normal",{
 Id="SmallestPixel.ttf",
 Font=game:HttpGet"https://github.com/i77lhm/storage/raw/refs/heads/main/fonts/smallest_pixel-7.ttf",
 })
 
-aW={
-main=Font.new(aX,Enum.FontWeight.Regular,Enum.FontStyle.Normal);
-secondary=Font.new(aY,Enum.FontWeight.Regular,Enum.FontStyle.Normal);
+local a_=Register_Font("RuneScape",400,"Normal",{
+Id="RuneScape.ttf",
+Font=game:HttpGet"https://static.wfonts.com/download/data/2014/06/09/runescape-uf/runescape_uf.ttf",
+})
+
+aX={
+main=Font.new(aY,Enum.FontWeight.Regular,Enum.FontStyle.Normal);
+secondary=Font.new(aZ,Enum.FontWeight.Regular,Enum.FontStyle.Normal);
+runescape=Font.new(a_,Enum.FontWeight.Regular,Enum.FontStyle.Normal);
 }
+end
+
+local aY={
+["tahoma B"]={font=aX.main,textsize=12},osrs=
+{font=aX.runescape,textsize=16},
+}
+
+do
+local aZ=aG.name_misc
+if aZ and aZ.center then
+local a_=aZ.center
+a_:dropdown{
+name="name",
+flag="name_esp_font",
+items={"tahoma B","osrs"},
+default="tahoma B",
+callback=function(a0)
+local a1=aY[a0]
+if not a1 or not al then return end
+for a2,a3 in pairs(al)do
+if type(a3)=="table"and a3.objects and a3.objects.name then
+a3.objects.name.FontFace=a1.font
+a3.objects.name.TextSize=a1.textsize
+end
+end
+end,
+}
+end
 end
 
 al={players={},screengui=Instance.new("ScreenGui",gethui()),cache=Instance.new("ScreenGui",gethui()),connections={}};do
@@ -4066,167 +4138,271 @@ al.screengui.Name="\0"
 
 al.cache.Enabled=false
 
-local aX=math.sqrt
-local aY=math.round
+local aZ=math.sqrt
+local a_=math.round
 
-local aZ,a_,a0=0,0,0
-local a1,a2,a3=1,0,0
-local a4,Y,Z=0,1,0
-local _,a5,a6=0,0,-1
-local a7=1
-local a8,a9=0,0
-local ba,bb=1,1
-local bc=false
+local a0,a1,a2=0,0,0
+local a3,a4,a5=1,0,0
+local Y,Z,_=0,1,0
+local a6,a7,a8=0,0,-1
+local a9=1
+local ba,bb=0,0
+local bc,bd=1,1
+local be=false
 
-local function begin_frame()
-local bd=C
-if not bd then
-bc=false
+local function esp_hide_arrow(bf)
+if not bf then return end
+local bg=bf.arrow
+local bh=bf.arrow_outline
+if bg and bg.Visible then bg.Visible=false end
+if bh and bh.Visible then bh.Visible=false end
+end
+
+local function esp_offscreen_arrow(bf,bg,bh,bi)
+local bj=bf and bf.arrow
+if not bj then
 return
 end
 
-local be=bd.CFrame
-local bf=be.Position
-local bg=be.RightVector
-local bh=be.UpVector
-local bi=be.LookVector
-local bj=bd.ViewportSize
+local bk=bf.arrow_outline
 
-aZ,a_,a0=bf.x,bf.y,bf.z
-a1,a2,a3=bg.x,bg.y,bg.z
-a4,Y,Z=bh.x,bh.y,bh.z
-_,a5,a6=bi.x,bi.y,bi.z
-ba,bb=bj.x,bj.y
-a8,a9=bj.x*0.5,bj.y*0.5
+local bl=ac.player_offscreen
+and not(ak.main_outline and ak.main_outline.Visible)
 
-local bk=bd.FieldOfView
-if type(bk)~="number"or bk<=0 or bk>=180 then
-bk=70
-end
-a7=a9/Q(L(bk*0.5))
-bc=true
+if not bl or not be then
+esp_hide_arrow(bf)
+return
 end
 
-local function project(bd,be,bf)
-if not bc then
+local bm=bg-a0
+local bn=bh-a1
+local bo=bi-a2
+
+local bp=bm*a6+bn*a7+bo*a8
+local bq=bm*a3+bn*a4+bo*a5
+local br=bm*Y+bn*Z+bo*_
+
+if bp<=0 then
+bq,br=-bq,-br
+bp=1
+end
+
+local bs=1/bp
+local bt=bq*a9*bs
+local bu=-br*a9*bs
+
+local bv=aZ(bt*bt+bu*bu)
+if bv<0.001 then
+esp_hide_arrow(bf)
+return
+end
+
+local bw=bt/bv
+local bx=bu/bv
+
+local by=80
+local bz=bc*0.5-by
+local bA=bd*0.5-by
+
+local bB=1e9
+if bw>0 then
+bB=I(bB,bz/bw)
+elseif bw<0 then
+bB=I(bB,-bz/bw)
+end
+
+if bx>0 then
+bB=I(bB,bA/bx)
+elseif bx<0 then
+bB=I(bB,-bA/bx)
+end
+
+local bC=ba+bw*bB
+local bD=bb+bx*bB
+
+local bE=R(bw,-bx)
+local bF=math.cos(bE)
+local bG=math.sin(bE)
+
+local bH=ac.player_offscreen_color
+local bI=bH and bH.Color or v(255,255,255)
+local bJ=bH and(bH.Transparency or 0)or 0
+
+local bK=6
+
+local function point(bL,bM)
+return k(bC+bL*bF-bM*bG,bD+bL*bG+bM*bF)
+end
+
+if bk then
+local bL=bK+2
+local bM=bL*0.5
+bk.PointA=point(0,-bL)
+bk.PointB=point(-bM,bM)
+bk.PointC=point(bM,bM)
+bk.Color=v(0,0,0)
+bk.Transparency=bJ
+bk.Visible=true
+end
+
+local bL=bK*0.5
+bj.PointA=point(0,-bK)
+bj.PointB=point(-bL,bL)
+bj.PointC=point(bL,bL)
+bj.Color=bI
+bj.Transparency=bJ
+bj.Visible=true
+end
+
+local function begin_frame()
+local bf=C
+if not bf then
+be=false
+return
+end
+
+local bg=bf.CFrame
+local bh=bg.Position
+local bi=bg.RightVector
+local bj=bg.UpVector
+local bk=bg.LookVector
+local bl=bf.ViewportSize
+
+a0,a1,a2=bh.x,bh.y,bh.z
+a3,a4,a5=bi.x,bi.y,bi.z
+Y,Z,_=bj.x,bj.y,bj.z
+a6,a7,a8=bk.x,bk.y,bk.z
+bc,bd=bl.x,bl.y
+ba,bb=bl.x*0.5,bl.y*0.5
+
+local bm=bf.FieldOfView
+if type(bm)~="number"or bm<=0 or bm>=180 then
+bm=70
+end
+a9=bb/Q(L(bm*0.5))
+be=true
+end
+
+local function project(bf,bg,bh)
+if not be then
 return nil
 end
 
-local bg=bd-aZ
-local bh=be-a_
 local bi=bf-a0
+local bj=bg-a1
+local bk=bh-a2
 
-local bj=bg*_+bh*a5+bi*a6
-if bj<=0 then
+local bl=bi*a6+bj*a7+bk*a8
+if bl<=0 then
 return nil
 end
 
-local bk=bg*a1+bh*a2+bi*a3
-local bl=bg*a4+bh*Y+bi*Z
+local bm=bi*a3+bj*a4+bk*a5
+local bn=bi*Y+bj*Z+bk*_
 
-local bm=1/bj
-local bn=a8+bk*a7*bm
-local bo=a9-bl*a7*bm
+local bo=1/bl
+local bp=ba+bm*a9*bo
+local bq=bb-bn*a9*bo
 
-return bn,bo,bj
+return bp,bq,bl
 end
 
-function al.get_screen_pos(bd,be)
+function al.get_screen_pos(bf,bg)
 if not C then
 return Vector3.new(-99999,-99999,0),false
 end
 
-local bf=C.ViewportSize
-if bf.x<=0 or bf.y<=0 then
+local bh=C.ViewportSize
+if bh.x<=0 or bh.y<=0 then
 return Vector3.new(-99999,-99999,0),false
 end
 
-local bg=C.CFrame:pointToObjectSpace(be)
-if-bg.z<=0 then
+local bi=C.CFrame:pointToObjectSpace(bg)
+if-bi.z<=0 then
 return Vector3.new(-99999,-99999,0),false
 end
 
-local bh=C.FieldOfView
-if type(bh)~="number"or bh<=0 or bh>=180 then
-bh=70
+local bj=C.FieldOfView
+if type(bj)~="number"or bj<=0 or bj>=180 then
+bj=70
 end
 
-local bi=bf.x/bf.y
-local bj=-bg.z*math.tan(math.rad(bh/2))
-local bk=bi*bj
+local bk=bh.x/bh.y
+local bl=-bi.z*math.tan(math.rad(bj/2))
+local bm=bk*bl
 
-local bl=Vector3.new(-bk,bj,bg.z)
-local bm=bg-bl
+local bn=Vector3.new(-bm,bl,bi.z)
+local bo=bi-bn
 
-local bn=bm.x/(bk*2)
-local bo=-bm.y/(bj*2)
+local bp=bo.x/(bm*2)
+local bq=-bo.y/(bl*2)
 
-local bp=bn>=0 and bn<=1 and bo>=0 and bo<=1
+local br=bp>=0 and bp<=1 and bq>=0 and bq<=1
 
-return Vector3.new(bn*bf.x,bo*bf.y,-bg.z),bp
+return Vector3.new(bp*bh.x,bq*bh.y,-bi.z),br
 end
 
-function al.box_solve(bd,be,bf)
-if not be then
+function al.box_solve(bf,bg,bh)
+if not bg then
 return nil,nil,nil
 end
 
-if not bc then
-local bg=be.Position+(be.CFrame.UpVector*1.8)+C.CFrame.UpVector
-local bh=be.Position-(be.CFrame.UpVector*2.5)-C.CFrame.UpVector
-bf=bf or(be.Position-C.CFrame.p).Magnitude
+if not be then
+local bi=bg.Position+(bg.CFrame.UpVector*1.8)+C.CFrame.UpVector
+local bj=bg.Position-(bg.CFrame.UpVector*2.5)-C.CFrame.UpVector
+bh=bh or(bg.Position-C.CFrame.p).Magnitude
 
-local bi,bj=al:get_screen_pos(bg)
-local bk=al:get_screen_pos(bh)
+local bk,bl=al:get_screen_pos(bi)
+local bm=al:get_screen_pos(bj)
 
-local bl=math.max(math.floor(math.abs(bi.X-bk.X)),3)
-local bm=math.max(math.floor(math.max(math.abs(bk.Y-bi.Y),bl/2)),3)
-local bn=Vector2.new(math.floor(math.max(bm/1.5,bl)),bm)
-local bo=Vector2.new(math.floor(bi.X*0.5+bk.X*0.5-bn.X*0.5),math.floor(math.min(bi.Y,bk.Y)))
+local bn=math.max(math.floor(math.abs(bk.X-bm.X)),3)
+local bo=math.max(math.floor(math.max(math.abs(bm.Y-bk.Y),bn/2)),3)
+local bp=Vector2.new(math.floor(math.max(bo/1.5,bn)),bo)
+local bq=Vector2.new(math.floor(bk.X*0.5+bm.X*0.5-bp.X*0.5),math.floor(math.min(bk.Y,bm.Y)))
 
-return bn,bo,bj,bf
+return bp,bq,bl,bh
 end
 
-local bg=be.Position
-local bh,bi,bj=bg.x,bg.y,bg.z
-local bk=be.CFrame.UpVector
-local bl,bm,bn=bk.x,bk.y,bk.z
+local bi=bg.Position
+local bj,bk,bl=bi.x,bi.y,bi.z
+local bm=bg.CFrame.UpVector
+local bn,bo,bp=bm.x,bm.y,bm.z
 
-bf=bf or aX((bh-aZ)*(bh-aZ)+(bi-a_)*(bi-a_)+(bj-a0)*(bj-a0))
+bh=bh or aZ((bj-a0)*(bj-a0)+(bk-a1)*(bk-a1)+(bl-a2)*(bl-a2))
 
-local bo,bp=project(bh+bl*1.8+a4,bi+bm*1.8+Y,bj+bn*1.8+Z)
-local bq,br=project(bh-bl*2.5-a4,bi-bm*2.5-Y,bj-bn*2.5-Z)
+local bq,br=project(bj+bn*1.8+Y,bk+bo*1.8+Z,bl+bp*1.8+_)
+local bs,bt=project(bj-bn*2.5-Y,bk-bo*2.5-Z,bl-bp*2.5-_)
 
-if not bo then
-bo,bp=-99999,-99999
-end
 if not bq then
 bq,br=-99999,-99999
 end
+if not bs then
+bs,bt=-99999,-99999
+end
 
-local bs=bo>=0 and bo<=ba and bp>=0 and bp<=bb
+local bu=bq>=0 and bq<=bc and br>=0 and br<=bd
 
-local bt=G(H(J(bo-bq)),3)
-local bu=G(H(G(J(br-bp),bt/2)),3)
-local bv=k(H(G(bu/1.5,bt)),bu)
-local bw=k(H(bo*0.5+bq*0.5-bv.X*0.5),H(I(bp,br)))
+local bv=G(H(J(bq-bs)),3)
+local bw=G(H(G(J(bt-br),bv/2)),3)
+local bx=k(H(G(bw/1.5,bv)),bw)
+local by=k(H(bq*0.5+bs*0.5-bx.X*0.5),H(I(br,bt)))
 
-return bv,bw,bs,bf
+return bx,by,bu,bh
 
 end
 
-function al.create(bd,be,bf)
-local bg=Instance.new(be)
+function al.create(bf,bg,bh)
+local bi=Instance.new(bg)
 
-for bh,bi in bf do
-bg[bh]=bi
+for bj,bk in bh do
+bi[bj]=bk
 end
 
-return bg
+return bi
 end
 
-function al.create_object(bd,be)
-al[be.Name]={
+function al.create_object(bf,bg)
+al[bg.Name]={
 objects={},
 info={
 character=nil,
@@ -4237,14 +4413,16 @@ tool=nil,
 invisible=false,
 flag_checked=0,
 },
+refresh_pending=false,
+refresh_retry_at=0,
 drawings={},
 connections={},
 player_connections={},
 }
-local bf=al[be.Name]
+local bh=al[bg.Name]
 
-local bg=bf.objects;do
-bg.holder=al:create("Frame",{
+local bi=bh.objects;do
+bi.holder=al:create("Frame",{
 Parent=al.screengui;
 Name="\0";
 BackgroundTransparency=1;
@@ -4255,17 +4433,17 @@ BorderSizePixel=0;
 BackgroundColor3=v(255,255,255)
 });
 
-bg.box_outline=al:create("UIStroke",{
-Parent=(ac.Boxes and ac.Box_Type~="Corner"and bg.holder)or al.cache;
+bi.box_outline=al:create("UIStroke",{
+Parent=(ac.Boxes and ac.Box_Type~="Corner"and bi.holder)or al.cache;
 LineJoinMode=Enum.LineJoinMode.Miter
 });
 
-bg.name=al:create("TextLabel",{
-FontFace=aW.main;
-Parent=bg.holder;
+bi.name=al:create("TextLabel",{
+FontFace=(aY[ac.name_esp_font]or aY["tahoma B"]).font;
+Parent=bi.holder;
 TextColor3=ac.Name_Color.Color;
 BorderColor3=v(0,0,0);
-Text=be.Name;
+Text=bg.Name;
 Name="\0";
 TextStrokeTransparency=0;
 AnchorPoint=k(0.5,1);
@@ -4274,11 +4452,11 @@ BackgroundTransparency=1;
 Position=m(0.5,0,0,-4);
 BorderSizePixel=0;
 AutomaticSize=Enum.AutomaticSize.Y;
-TextSize=12;
+TextSize=(aY[ac.name_esp_font]or aY["tahoma B"]).textsize;
 });
 
-bg.box_handler=al:create("Frame",{
-Parent=(ac.Boxes and ac.Box_Type~="Corner"and bg.holder)or al.cache;
+bi.box_handler=al:create("Frame",{
+Parent=(ac.Boxes and ac.Box_Type~="Corner"and bi.holder)or al.cache;
 Name="\0";
 BackgroundTransparency=1;
 Position=m(0,1,0,1);
@@ -4288,15 +4466,15 @@ BorderSizePixel=0;
 BackgroundColor3=v(255,255,255)
 });
 
-bg.box_color=al:create("UIStroke",{
+bi.box_color=al:create("UIStroke",{
 Color=ac.Box_Color and ac.Box_Color.Color or v(255,255,255);
 LineJoinMode=Enum.LineJoinMode.Miter;
 Name="\0";
-Parent=bg.box_handler
+Parent=bi.box_handler
 });
 
-bg.outline=al:create("Frame",{
-Parent=bg.box_handler;
+bi.outline=al:create("Frame",{
+Parent=bi.box_handler;
 Name="\0";
 BackgroundTransparency=1;
 Position=m(0,1,0,1);
@@ -4306,16 +4484,16 @@ BorderSizePixel=0;
 BackgroundColor3=v(255,255,255)
 });
 
-bg.outline_stroke=al:create("UIStroke",{
-Parent=bg.outline;
+bi.outline_stroke=al:create("UIStroke",{
+Parent=bi.outline;
 LineJoinMode=Enum.LineJoinMode.Miter;
 Transparency=0;
 });
 
-bg.corners=al:create("Frame",{
+bi.corners=al:create("Frame",{
 Visible=true;
 BorderColor3=v(0,0,0);
-Parent=ac.Boxes and ac.Box_Type=="Corner"and bg.holder or al.cache;
+Parent=ac.Boxes and ac.Box_Type=="Corner"and bi.holder or al.cache;
 BackgroundTransparency=1;
 Position=m(0,-1,0,2);
 Name="\0";
@@ -4324,8 +4502,8 @@ BorderSizePixel=0;
 BackgroundColor3=v(255,255,255)
 });
 
-bg["1"]=al:create("Frame",{
-Parent=bg.corners;
+bi["1"]=al:create("Frame",{
+Parent=bi.corners;
 Name="line";
 Position=m(0,0,0,-2);
 BorderColor3=v(0,0,0);
@@ -4335,7 +4513,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["1"];
+Parent=bi["1"];
 Position=m(0,1,0,1);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,-2);
@@ -4343,8 +4521,8 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg["2"]=al:create("Frame",{
-Parent=bg.corners;
+bi["2"]=al:create("Frame",{
+Parent=bi.corners;
 Name="line";
 Position=m(0,0,0,1);
 BorderColor3=v(0,0,0);
@@ -4354,7 +4532,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["2"];
+Parent=bi["2"];
 Position=m(0,1,0,-2);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,1);
@@ -4362,9 +4540,9 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg["3"]=al:create("Frame",{
+bi["3"]=al:create("Frame",{
 AnchorPoint=k(1,0);
-Parent=bg.corners;
+Parent=bi.corners;
 Name="line";
 Position=m(1,0,0,-2);
 BorderColor3=v(0,0,0);
@@ -4374,7 +4552,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["3"];
+Parent=bi["3"];
 Position=m(0,1,0,1);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,-2);
@@ -4382,9 +4560,9 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg["4"]=al:create("Frame",{
+bi["4"]=al:create("Frame",{
 AnchorPoint=k(1,0);
-Parent=bg.corners;
+Parent=bi.corners;
 Name="line";
 Position=m(1,0,0,1);
 BorderColor3=v(0,0,0);
@@ -4394,7 +4572,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["4"];
+Parent=bi["4"];
 Position=m(0,1,0,-2);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,1);
@@ -4402,9 +4580,9 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg["5"]=al:create("Frame",{
+bi["5"]=al:create("Frame",{
 AnchorPoint=k(0,1);
-Parent=bg.corners;
+Parent=bi.corners;
 Name="line";
 Position=m(0,0,1,-2);
 BorderColor3=v(0,0,0);
@@ -4414,7 +4592,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["5"];
+Parent=bi["5"];
 Position=m(0,1,0,1);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,-2);
@@ -4422,10 +4600,10 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg["6"]=al:create("Frame",{
+bi["6"]=al:create("Frame",{
 BorderColor3=v(0,0,0);
 Rotation=180;
-Parent=bg.corners;
+Parent=bi.corners;
 Name="line";
 Position=m(0,0,1,-5);
 AnchorPoint=k(0,1);
@@ -4435,7 +4613,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["6"];
+Parent=bi["6"];
 Position=m(0,1,0,-2);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,1);
@@ -4443,9 +4621,9 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg["7"]=al:create("Frame",{
+bi["7"]=al:create("Frame",{
 AnchorPoint=k(1,1);
-Parent=bg.corners;
+Parent=bi.corners;
 Name="line";
 Position=m(1,0,1,-2);
 BorderColor3=v(0,0,0);
@@ -4455,7 +4633,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["7"];
+Parent=bi["7"];
 Position=m(0,1,0,1);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,-2);
@@ -4463,10 +4641,10 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg["7"]=al:create("Frame",{
+bi["7"]=al:create("Frame",{
 BorderColor3=v(0,0,0);
 Rotation=180;
-Parent=bg.corners;
+Parent=bi.corners;
 Name="line";
 Position=m(1,0,1,-5);
 AnchorPoint=k(1,1);
@@ -4476,7 +4654,7 @@ BackgroundColor3=v(0,0,0)
 });
 
 al:create("Frame",{
-Parent=bg["7"];
+Parent=bi["7"];
 Position=m(0,1,0,-2);
 BorderColor3=v(0,0,0);
 Size=m(1,-2,1,1);
@@ -4484,9 +4662,9 @@ BorderSizePixel=0;
 BackgroundColor3=ac.Box_Color.Color
 });
 
-bg.healthbar_holder=al:create("Frame",{
+bi.healthbar_holder=al:create("Frame",{
 AnchorPoint=k(1,0);
-Parent=ac.Healthbar and bg.holder or al.cache;
+Parent=ac.Healthbar and bi.holder or al.cache;
 Name="\0";
 Position=m(0,-2,0,-1);
 BorderColor3=v(0,0,0);
@@ -4496,8 +4674,8 @@ ClipsDescendants=true;
 BackgroundColor3=v(0,0,0)
 });
 
-bg.healthbar=al:create("Frame",{
-Parent=bg.healthbar_holder;
+bi.healthbar=al:create("Frame",{
+Parent=bi.healthbar_holder;
 Name="\0";
 Position=m(0,1,0,1);
 BorderColor3=v(0,0,0);
@@ -4506,12 +4684,12 @@ BorderSizePixel=0;
 BackgroundColor3=v(255,255,255)
 });
 
-bg.distance=al:create("TextLabel",{
-FontFace=aW.secondary;
+bi.distance=al:create("TextLabel",{
+FontFace=aX.secondary;
 TextColor3=ac.Distance_Color.Color;
 BorderColor3=v(0,0,0);
 Text="38M";
-Parent=ac.Distance and bg.holder or al.cache;
+Parent=ac.Distance and bi.holder or al.cache;
 TextStrokeTransparency=1;
 Name="\0";
 Size=m(1,0,0,0);
@@ -4522,17 +4700,17 @@ AutomaticSize=Enum.AutomaticSize.Y;
 TextSize=9;
 });
 al:create("UIStroke",{
-Parent=bg.distance;
+Parent=bi.distance;
 Color=v(0,0,0);
 LineJoinMode=Enum.LineJoinMode.Miter;
 });
 
-bg.flag=al:create("TextLabel",{
-FontFace=aW.secondary;
+bi.flag=al:create("TextLabel",{
+FontFace=aX.secondary;
 TextColor3=ac.Distance_Color.Color;
 BorderColor3=v(0,0,0);
 Text="INVIS";
-Parent=ac.player_flags and bg.holder or al.cache;
+Parent=ac.player_flags and bi.holder or al.cache;
 TextStrokeTransparency=1;
 Name="\0";
 AnchorPoint=k(1,0);
@@ -4546,13 +4724,13 @@ TextXAlignment=Enum.TextXAlignment.Right;
 Visible=false;
 });
 al:create("UIStroke",{
-Parent=bg.flag;
+Parent=bi.flag;
 Color=v(0,0,0);
 LineJoinMode=Enum.LineJoinMode.Miter;
 });
 
-bg.weapon=al:create("TextLabel",{
-FontFace=aW.secondary;
+bi.weapon=al:create("TextLabel",{
+FontFace=aX.secondary;
 TextColor3=ac.Weapon_Color.Color;
 BorderColor3=v(0,0,0);
 Text="[ak-47]";
@@ -4567,256 +4745,394 @@ AutomaticSize=Enum.AutomaticSize.Y;
 TextSize=9;
 });
 al:create("UIStroke",{
-Parent=bg.weapon;
+Parent=bi.weapon;
 Color=v(0,0,0);
 LineJoinMode=Enum.LineJoinMode.Miter;
 });
 
-for bh,bi in aV do
-local bj=Drawing.new"Line"
-bj.Color=ac.Skeletons_Color.Color;
-bj.Thickness=1;
-bj.Visible=false;
+for bj,bk in aW do
+local bl=Drawing.new"Line"
+bl.Color=ac.Skeletons_Color.Color;
+bl.Thickness=1;
+bl.Visible=false;
 
-bf.drawings[#bf.drawings+1]=bj;
+bh.drawings[#bh.drawings+1]=bl;
 end
+
+local bj=Drawing.new"Triangle"
+bj.Thickness=1
+bj.Filled=true
+bj.Color=v(255,255,255)
+bj.Transparency=0
+bj.Visible=false
+bh.arrow=bj
+
+local bk=Drawing.new"Triangle"
+bk.Thickness=1
+bk.Filled=true
+bk.Color=v(0,0,0)
+bk.Transparency=0
+bk.Visible=false
+bh.arrow_outline=bk
 
 end
 
 do
-bf.health_changed=function(bh)
+bh.health_changed=function(bj)
 if not ac.Healthbar then
 return
 end
 
-local bi=bf.info.humanoid
-if not bi then
+local bk=bh.info.humanoid
+if not bk then
 return
 end
 
-local bj=math.max(bh/bi.MaxHealth,0.001)
-local bk=ac.Health_Low.Color:Lerp(ac.Health_High.Color,bj)
+local bl=math.max(bj/bk.MaxHealth,0.001)
+local bm=ac.Health_Low.Color:Lerp(ac.Health_High.Color,bl)
 
-bg.healthbar.Size=UDim2.new(1,-2,bj,-2)
-bg.healthbar.Position=UDim2.new(0,1,1-bj,1)
-bg.healthbar.BackgroundColor3=bk
-end
-
-bf.refresh_bones=function()
-local bh=bf.info.character
-local bi={}
-if bh then
-for bj=1,#aV do
-local bk=aV[bj]
-local bl=bh:FindFirstChild(bk[1])
-local bm=bh:FindFirstChild(bk[2])
-if bl and bm then
-bi[bj]={bl,bm}
-end
-end
-end
-bf.info.bones=bi
+bi.healthbar.Size=UDim2.new(1,-2,bl,-2)
+bi.healthbar.Position=UDim2.new(0,1,1-bl,1)
+bi.healthbar.BackgroundColor3=bm
 end
 
-bf.tool_added=function(bh)
-if not bh:IsA"Tool"then
+bh.refresh_bones=function()
+local bj=bh.info.character
+local bk={}
+if bj then
+for bl=1,#aW do
+local bm=aW[bl]
+local bn=bj:FindFirstChild(bm[1])
+local bo=bj:FindFirstChild(bm[2])
+if bn and bo then
+bk[bl]={bn,bo}
+end
+end
+end
+bh.info.bones=bk
+end
+
+bh.tool_added=function(bj)
+if not bj:IsA"Tool"then
 return
 end
 
-local bi=bf.info.character
-local bj=bi and bi:FindFirstChild(bh.Name)
+local bk=bh.info.character
+local bl=bk and bk:FindFirstChild(bj.Name)
+
+if bl then
+bh.info.tool=bj
+bi.weapon.Text=bj.Name
+bi.weapon.Parent=bi.holder
+else
+bh.info.tool=nil
+bi.weapon.Parent=al.cache
+end
+
+bh.refresh_offsets()
+end
+
+bh.refresh_offsets=function()
+local bj=bi.weapon.Parent==bi.holder
 
 if bj then
-bf.info.tool=bh
-bg.weapon.Text=bh.Name
-bg.weapon.Parent=bg.holder
+bi.distance.Position=m(0,0,1,8)
+bi.weapon.Position=m(0,0,1,0)
 else
-bf.info.tool=nil
-bg.weapon.Parent=al.cache
-end
-
-bf.refresh_offsets()
-end
-
-bf.refresh_offsets=function()
-local bh=bg.weapon.Parent==bg.holder
-
-if bh then
-bg.distance.Position=m(0,0,1,8)
-bg.weapon.Position=m(0,0,1,0)
-else
-bg.distance.Position=m(0,0,1,0)
+bi.distance.Position=m(0,0,1,0)
 end
 end
 
-bf.refresh_descendants=function(bh)
+bh.refresh_descendants=function(bj)
 
-bh=bh or be.Character
-if not bh or not bh.Parent then
+if bh.refresh_pending then
 return
 end
 
-local bi=bh:WaitForChild("Humanoid",15)
-if not bi then
+bj=bj or bg.Character
+if not bj or not bj.Parent then
 return
 end
 
-local bj=bh:FindFirstChild"HumanoidRootPart"
-
-for bk,bl in bf.connections do
-bl:Disconnect()
-end
-bf.connections={}
-
-bf.info.character=bh
-bf.info.humanoid=bi
-bf.info.rootpart=bj
-bf.info.invisible=false
-bf.info.flag_checked=0
-
-if bg.highlight then
-bg.highlight:Destroy()
-bg.highlight=nil
+if bh.info.character==bj and bh.info.humanoid and bi.highlight and bi.highlight.Parent then
+return
 end
 
-local bk=Instance.new"Highlight"
-bk.Name="\0"
-bk.Adornee=bh
-bk.DepthMode=Enum.HighlightDepthMode.Occluded
-bk.Enabled=false
-bk.Parent=bh
-bg.highlight=bk
+bh.refresh_pending=true
 
-bf.connections[#bf.connections+1]=bi.HealthChanged:Connect(bf.health_changed)
-bf.connections[#bf.connections+1]=bh.ChildAdded:Connect(function(bl)
-bf.refresh_bones()
-bf.tool_added(bl)
-end)
-bf.connections[#bf.connections+1]=bh.ChildRemoved:Connect(function(bl)
-bf.refresh_bones()
-bf.tool_added(bl)
-end)
+local bk=bj:WaitForChild("Humanoid",15)
+if not bk then
+bh.refresh_pending=false
+return
+end
 
-bf.refresh_bones()
+local bl,bm=pcall(function()
 
-local bl=bh:FindFirstChildOfClass"Tool"
-if bl then
-bf.tool_added(bl)
+local bl=bj:FindFirstChild"HumanoidRootPart"
+
+for bm,bn in bh.connections do
+bn:Disconnect()
+end
+bh.connections={}
+
+bh.info.character=bj
+bh.info.humanoid=bk
+bh.info.rootpart=bl
+bh.info.invisible=false
+bh.info.flag_checked=0
+
+if bi.highlight then
+bi.highlight:Destroy()
+bi.highlight=nil
+end
+
+if bi.adornments then
+for bm,bn in bi.adornments do
+if bn then
+if bn.inline and bn.inline.Parent then bn.inline:Destroy()end
+if bn.outline and bn.outline.Parent then bn.outline:Destroy()end
+end
+end
+end
+bi.adornments={}
+
+local bm={Torso=
+true,UpperTorso=true,LowerTorso=true,
+["Left Arm"]=true,LeftUpperArm=true,LeftLowerArm=true,LeftHand=true,
+["Right Arm"]=true,RightUpperArm=true,RightLowerArm=true,RightHand=true,
+["Left Leg"]=true,LeftUpperLeg=true,LeftLowerLeg=true,LeftFoot=true,
+["Right Leg"]=true,RightUpperLeg=true,RightLowerLeg=true,RightFoot=true,
+}
+
+local bn=Instance.new"Highlight"
+bn.Name="\0"
+bn.Adornee=bj
+bn.DepthMode=Enum.HighlightDepthMode.Occluded
+bn.Enabled=false
+bn.Parent=bj
+bi.highlight=bn
+
+local function create_cham_for_part(bo)
+if not bo or not bo.Parent then return end
+if bo:IsA"Accessory"or bo:IsA"LocalScript"then return end
+
+local bp=bo.Name=="Head"
+local bq=bm[bo.Name]
+
+if not bp and not bq then return end
+
+if bi.adornments[bo]then return end
+
+local br=bp and"CylinderHandleAdornment"or"BoxHandleAdornment"
+
+local bs=Instance.new(br)
+bs.Name="Inline"
+bs.Color3=v(255,255,255)
+bs.Transparency=0.75
+bs.ZIndex=2
+bs.AlwaysOnTop=true
+bs.AdornCullingMode="Never"
+bs.Visible=false
+bs.Adornee=bo
+
+local bt=Instance.new(br)
+bt.Name="_Outline"
+bt.Color3=v(255,255,255)
+bt.Transparency=0.55
+bt.ZIndex=2
+bt.AlwaysOnTop=false
+bt.AdornCullingMode="Never"
+bt.Visible=false
+bt.Adornee=bo
+
+if br=="CylinderHandleAdornment"then
+bs.Radius=bo.Size.X/2+0.15
+bs.Height=bo.Size.Y+0.3
+bs.CFrame=CFrame.new(Vector3.new(),Vector3.new(0,1,0))
+bt.Radius=bo.Size.X/2+0.2
+bt.Height=bo.Size.Y+0.35
+bt.CFrame=CFrame.new(Vector3.new(),Vector3.new(0,1,0))
 else
-bf.info.tool=nil
-bg.weapon.Parent=al.cache
-bf.refresh_offsets()
+bs.Size=bo.Size+Vector3.new(0.05,0.05,0.05)
+bt.Size=bo.Size+Vector3.new(0.1,0.1,0.1)
 end
 
-bf.health_changed(bf.info.humanoid.Health)
+bs.Parent=bo
+bt.Parent=bo
+bi.adornments[bo]={inline=bs,outline=bt}
+end
+
+for bo,bp in bj:GetChildren()do
+create_cham_for_part(bp)
+end
+
+bh.connections[#bh.connections+1]=bk.HealthChanged:Connect(bh.health_changed)
+bh.connections[#bh.connections+1]=bj.ChildAdded:Connect(function(bo)
+bh.refresh_bones()
+bh.tool_added(bo)
+create_cham_for_part(bo)
+end)
+bh.connections[#bh.connections+1]=bj.ChildRemoved:Connect(function(bo)
+bh.refresh_bones()
+bh.tool_added(bo)
+end)
+
+bh.refresh_bones()
+
+local bo=bj:FindFirstChildOfClass"Tool"
+if bo then
+bh.tool_added(bo)
+else
+bh.info.tool=nil
+bi.weapon.Parent=al.cache
+bh.refresh_offsets()
+end
+
+bh.health_changed(bh.info.humanoid.Health)
 al.refresh_elements()
+
+end)
+
+bh.refresh_pending=false
+
+if not bl then
+if not bh.warned_setup then
+bh.warned_setup=true
+warn("[ESP] setup failed for "..bg.Name..": "..tostring(bm))
+end
+else
+bh.warned_setup=false
+end
 end
 end
 
 do
 
-if be.Character then
-task.spawn(bf.refresh_descendants,be.Character)
+if bg.Character then
+task.spawn(bh.refresh_descendants,bg.Character)
 end
 
-bf.player_connections[#bf.player_connections+1]=be.CharacterAdded:Connect(function(bh)
-task.spawn(bf.refresh_descendants,bh)
+bh.player_connections[#bh.player_connections+1]=bg.CharacterAdded:Connect(function(bj)
+task.spawn(bh.refresh_descendants,bj)
 end)
 
-bf.player_connections[#bf.player_connections+1]=be.CharacterRemoving:Connect(function()
+bh.player_connections[#bh.player_connections+1]=bg.CharacterRemoving:Connect(function()
 
-bf.info.character=nil
-bf.info.humanoid=nil
-bf.info.rootpart=nil
+bh.info.character=nil
+bh.info.humanoid=nil
+bh.info.rootpart=nil
 
-if bg.holder then
-bg.holder.Visible=false
+if bi.holder then
+bi.holder.Visible=false
 end
 
-if bg.highlight then
-bg.highlight.Enabled=false
+if bi.highlight and bi.highlight.Parent then
+bi.highlight.Enabled=false
 end
 
-for bh,bi in bf.drawings do
-bi.Visible=false
+if bi.adornments then
+for bj,bk in bi.adornments do
+if bk then
+if bk.inline and bk.inline.Parent then bk.inline.Visible=false end
+if bk.outline and bk.outline.Parent then bk.outline.Visible=false end
 end
+end
+end
+
+for bj,bk in bh.drawings do
+bk.Visible=false
+end
+
+esp_hide_arrow(bh)
 end)
 
-bf.player_connections[#bf.player_connections+1]=be:GetPropertyChangedSignal"Team":Connect(function()
+bh.player_connections[#bh.player_connections+1]=bg:GetPropertyChangedSignal"Team":Connect(function()
 if al then
 al.refresh_elements()
 end
 end)
 
-local bh=be.Character and be.Character:FindFirstChildOfClass"Tool"
+local bj=bg.Character and bg.Character:FindFirstChildOfClass"Tool"
 
-if bh then
-bf.tool_added(bh)
+if bj then
+bh.tool_added(bj)
 end
 end
 end
 
-function al.remove_object(bd,be)
-local bf=al[be.Name]
+function al.remove_object(bf,bg)
+local bh=al[bg.Name]
 
-if not bf then return end
+if not bh then return end
 
-for bg,bh in bf.connections do
-bh:Disconnect()
+for bi,bj in bh.connections do
+bj:Disconnect()
 end
-bf.connections={}
+bh.connections={}
 
-for bg,bh in bf.player_connections do
-bh:Disconnect()
+for bi,bj in bh.player_connections do
+bj:Disconnect()
 end
-bf.player_connections={}
+bh.player_connections={}
 
-local bg=bf.objects
+local bi=bh.objects
 
-for bh,bi in bf.drawings do
-bi:Remove()
-end
-
-if bg.highlight then
-bg.highlight:Destroy()
+for bj,bk in bh.drawings do
+bk:Remove()
 end
 
-bg.holder:Destroy()
-al[be.Name]=nil
+if bh.arrow then bh.arrow:Remove()end
+if bh.arrow_outline then bh.arrow_outline:Remove()end
+
+if bi.highlight then
+bi.highlight:Destroy()
 end
 
-local function should_render_player(bd)
-if bd==b.LocalPlayer then
+if bi.adornments then
+for bj,bk in bi.adornments do
+if bk then
+if bk.inline and bk.inline.Parent then bk.inline:Destroy()end
+if bk.outline and bk.outline.Parent then bk.outline:Destroy()end
+end
+end
+end
+
+bi.holder:Destroy()
+al[bg.Name]=nil
+end
+
+local function should_render_player(bf)
+if bf==b.LocalPlayer then
 return ac.player_local
 end
 
-local be=b.LocalPlayer.Team
-if be and bd.Team==be then
+local bg=b.LocalPlayer.Team
+if bg and bf.Team==bg then
 return ac.player_teammates
 end
 
 return true
 end
 
-local bd=v(31,236,66)
+local bf=v(31,236,66)
 
-local function esp_color(be,bf)
-if be==b.LocalPlayer then
-return bd
-end
-
-if type(bf)=="table"and bf.Color then
-return bf.Color
-end
-
+local function esp_color(bg,bh)
+if bg==b.LocalPlayer then
 return bf
 end
 
-local function is_character_invisible(be)
-for bf,bg in ipairs(be:GetDescendants())do
-if bg:IsA"BasePart"then
-local bh=bg.Transparency+(bg.LocalTransparencyModifier or 0)
-if bh<1 then
+if type(bh)=="table"and bh.Color then
+return bh.Color
+end
+
+return bh
+end
+
+local function is_character_invisible(bg)
+for bh,bi in ipairs(bg:GetDescendants())do
+if bi:IsA"BasePart"then
+local bj=bi.Transparency+(bi.LocalTransparencyModifier or 0)
+if bj<1 then
 return false
 end
 end
@@ -4824,114 +5140,156 @@ end
 return true
 end
 
-local function set_highlight(be,bf)
-local bg=be and be.objects and be.objects.highlight
-if bg and bg.Enabled~=bf then
-bg.Enabled=bf
+local function set_highlight(bg,bh)
+local bi=bg and bg.objects and bg.objects.highlight
+if bi and bi.Parent and bi.Enabled~=bh then
+bi.Enabled=bh
+end
+end
+
+local function set_adornments(bg,bh)
+if not bg or not bg.objects or not bg.objects.adornments then return end
+for bi,bj in bg.objects.adornments do
+if bj then
+if bj.inline and bj.inline.Parent then
+bj.inline.Visible=bh
+end
+if bj.outline and bj.outline.Parent then
+bj.outline.Visible=bh
+end
+end
 end
 end
 
 function al.refresh_elements()
-for be,bf in b:GetPlayers()do
-local bg=al[bf.Name]
-
-if not bg then
-
-al:create_object(bf)
-bg=al[bf.Name]
-end
-
-local bh=bg and bg.objects
-
-if not bg or not bh then
-continue
-end
-
-local bi=should_render_player(bf)and bf.Character
+for bg,bh in b:GetPlayers()do
+local bi=al[bh.Name]
 
 if not bi then
-bh.holder.Parent=al.cache
-bh.name.Parent=al.cache
-bh.corners.Parent=al.cache
-bh.box_handler.Parent=al.cache
-bh.box_outline.Parent=al.cache
-bh.healthbar_holder.Parent=al.cache
-bh.weapon.Parent=al.cache
-bh.distance.Parent=al.cache
 
-if bh.highlight then
-bh.highlight.Enabled=false
+al:create_object(bh)
+bi=al[bh.Name]
 end
 
-for bj,bk in bg.drawings do
-bk.Visible=false
-end
+local bj=bi and bi.objects
 
-bg.refresh_offsets()
+if not bi or not bj then
 continue
 end
 
-local bj=ac.Enabled and true or false
-bh.holder.Parent=bj and al.screengui or al.cache
+local bk=should_render_player(bh)and bh.Character
 
-bh.name.Parent=ac.Names and bh.holder or al.cache
-bh.name.TextColor3=esp_color(bf,ac.Name_Color)
+if not bk then
+bj.holder.Parent=al.cache
+bj.name.Parent=al.cache
+bj.corners.Parent=al.cache
+bj.box_handler.Parent=al.cache
+bj.box_outline.Parent=al.cache
+bj.healthbar_holder.Parent=al.cache
+bj.weapon.Parent=al.cache
+bj.distance.Parent=al.cache
 
-local bk=ac.Box_Type=="Corner"
+if bj.highlight and bj.highlight.Parent then
+bj.highlight.Enabled=false
+end
+
+if bj.adornments then
+for bl,bm in bj.adornments do
+if bm then
+if bm.inline and bm.inline.Parent then bm.inline.Visible=false end
+if bm.outline and bm.outline.Parent then bm.outline.Visible=false end
+end
+end
+end
+
+for bl,bm in bi.drawings do
+bm.Visible=false
+end
+
+esp_hide_arrow(bi)
+
+bi.refresh_offsets()
+continue
+end
+
+local bl=ac.Enabled and true or false
+bj.holder.Parent=bl and al.screengui or al.cache
+
+bj.name.Parent=ac.Names and bj.holder or al.cache
+bj.name.TextColor3=esp_color(bh,ac.Name_Color)
+
+local bm=ac.Box_Type=="Corner"
 
 if ac.Boxes then
-bh.corners.Parent=(bk and bh.holder)or al.cache
-bh.box_handler.Parent=(bk and al.cache or bh.holder)
-bh.box_outline.Parent=(bk and al.cache or bh.holder)
+bj.corners.Parent=(bm and bj.holder)or al.cache
+bj.box_handler.Parent=(bm and al.cache or bj.holder)
+bj.box_outline.Parent=(bm and al.cache or bj.holder)
 else
-bh.corners.Parent=al.cache
-bh.box_handler.Parent=al.cache
-bh.box_outline.Parent=al.cache
+bj.corners.Parent=al.cache
+bj.box_handler.Parent=al.cache
+bj.box_outline.Parent=al.cache
 end
 
-bh.box_color.Color=esp_color(bf,ac.Box_Color)
-bh.outline_stroke.Transparency=0
-bh.flag.TextColor3=esp_color(bf,ac.Distance_Color)
-bh.flag.Parent=ac.player_flags and bh.holder or al.cache
+bj.box_color.Color=esp_color(bh,ac.Box_Color)
+bj.outline_stroke.Transparency=0
+bj.flag.TextColor3=esp_color(bh,ac.Distance_Color)
+bj.flag.Parent=ac.player_flags and bj.holder or al.cache
 
-local bl=ac.player_model or"off"
-if bh.highlight then
-bh.highlight.Enabled=bj and bl~="off"
-bh.highlight.DepthMode=bl=="ontop"and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+local bn=ac.chams_enabled and true or false
+if bj.highlight and bj.highlight.Parent then
+bj.highlight.Enabled=bl and bn
+bj.highlight.DepthMode=Enum.HighlightDepthMode.Occluded
 
-local bm=ac.player_highlight_fill or{Color=v(255,255,255),Transparency=0}
-local bn=ac.player_highlight_outline or{Color=v(0,0,0),Transparency=0}
-
-bh.highlight.FillColor=bm.Color
-bh.highlight.FillTransparency=bm.Transparency or 0
-bh.highlight.OutlineColor=bn.Color
-bh.highlight.OutlineTransparency=bn.Transparency or 0
+local bo=ac.chams_visible or{Color=v(0,0,0),Transparency=0}
+bj.highlight.FillColor=bo.Color
+bj.highlight.FillTransparency=bo.Transparency or 0
+bj.highlight.OutlineColor=bo.Color
+bj.highlight.OutlineTransparency=bo.Transparency or 0
 end
 
-bh.flag.Visible=ac.player_flags and is_character_invisible(bf.Character)
-
-for bm,bn in bh.corners:GetChildren()do
-if bn:IsA"GuiObject"then
-bn.BackgroundColor3=esp_color(bf,ac.Box_Color)
+if bj.adornments then
+local bo=ac.chams_occluded or{Color=v(255,255,255),Transparency=0}
+local bp=ac.chams_visible or{Color=v(255,255,255),Transparency=0}
+for bq,br in bj.adornments do
+if br then
+if br.inline and br.inline.Parent then
+br.inline.Color3=bo.Color
+br.inline.Transparency=bo.Transparency or 0
+br.inline.Visible=bl and bn
+end
+if br.outline and br.outline.Parent then
+br.outline.Color3=bp.Color
+br.outline.Transparency=bp.Transparency or 0
+br.outline.Visible=bl and bn
+end
+end
 end
 end
 
-local bm=ak.main_outline and ak.main_outline.Visible
+bj.flag.Visible=ac.player_flags and is_character_invisible(bh.Character)
 
-for bn,bo in bg.drawings do
-bo.Color=esp_color(bf,ac.Skeletons_Color)
-bo.Visible=ac.Skeletons and bj and not bm
+for bo,bp in bj.corners:GetChildren()do
+if bp:IsA"GuiObject"then
+bp.BackgroundColor3=esp_color(bh,ac.Box_Color)
+end
 end
 
-bh.healthbar_holder.Parent=ac.Healthbar and bh.holder or al.cache
+local bo=ak.main_outline and ak.main_outline.Visible
 
-bh.weapon.TextColor3=esp_color(bf,ac.Weapon_Color)
-bh.weapon.Parent=ac.Weapon and bf.Character:FindFirstChildOfClass"Tool"and bh.holder or al.cache
+for bp,bq in bi.drawings do
+bq.Color=esp_color(bh,ac.Skeletons_Color)
+bq.Visible=ac.Skeletons and bl and not bo
+end
 
-bh.distance.TextColor3=esp_color(bf,ac.Distance_Color)
-bh.distance.Parent=ac.Distance and bh.holder or al.cache
+bj.healthbar_holder.Parent=ac.Healthbar and bj.holder or al.cache
 
-bg.refresh_offsets()
+bj.weapon.TextColor3=esp_color(bh,ac.Weapon_Color)
+bj.weapon.Parent=ac.Weapon and bh.Character:FindFirstChildOfClass"Tool"and bj.holder or al.cache
+
+bj.distance.TextColor3=esp_color(bh,ac.Distance_Color)
+bj.distance.Parent=ac.Distance and bj.holder or al.cache
+
+bi.refresh_offsets()
 end
 end
 
@@ -4941,206 +5299,246 @@ return
 end
 
 begin_frame()
-if not bc then
+if not be then
 return
 end
 
-local be=ac.Skeletons
-local bf=ac.player_flags
-local bg=ac.player_model or"off"
-local bh=ac.player_max_distance or 0
-local bi=ac.Distance
-local bj=ac.Weapon
-local bk=ak.main_outline and ak.main_outline.Visible
-local bl=be and not bk
-local bm=tick()
+local bg=ac.Skeletons
+local bh=ac.player_flags
+local bi=ac.chams_enabled and true or false
+local bj=ac.player_max_distance or 0
+local bk=ac.Distance
+local bl=ac.Weapon
+local bm=ak.main_outline and ak.main_outline.Visible
+local bn=bg and not bm
+local bo=tick()
 
-for bn,bo in b:GetPlayers()do
+for bp,bq in b:GetPlayers()do
 
-if not al[bo.Name]then
-al:create_object(bo)
+if not al[bq.Name]then
+al:create_object(bq)
 end
 
-if not should_render_player(bo)then
-local bp=al[bo.Name]
-if bp then
-if bp.objects and bp.objects.holder then
-bp.objects.holder.Visible=false
+if not should_render_player(bq)then
+local br=al[bq.Name]
+if br then
+if br.objects and br.objects.holder then
+br.objects.holder.Visible=false
 end
-set_highlight(bp,false)
-for bq,br in bp.drawings do
-br.Visible=false
-end
-end
-continue
-end
-
-local bp=al[bo.Name]
-
-if not bp then
-continue
-end
-
-local bq=bp.info.character
-local br=bp.info.humanoid
-
-if not(bq and br)then
-if bp.objects and bp.objects.holder then
-bp.objects.holder.Visible=false
-end
-set_highlight(bp,false)
-for bs,bt in bp.drawings do
+set_highlight(br,false)
+set_adornments(br,false)
+for bs,bt in br.drawings do
 bt.Visible=false
 end
-continue
-end
-
-local bs=bp.objects
-
-if not bs then
-continue
-end
-
-local bt=br:GetState()
-if br.Health<=0 or bt==Enum.HumanoidStateType.Dead then
-local bu=bs.holder
-bu.Visible=false
-set_highlight(bp,false)
-for bv,bw in bp.drawings do
-bw.Visible=false
+esp_hide_arrow(br)
 end
 continue
 end
 
-local bu=br.RootPart or bq:FindFirstChild"HumanoidRootPart"
-if not bu then
-local bv=bs.holder
-if bv then
+local br=al[bq.Name]
+
+if not br then
+continue
+end
+
+local bs=br.info.character
+local bt=br.info.humanoid
+
+if not(bs and bs.Parent and bt and bt.Parent)then
+if br.objects and br.objects.holder then
+br.objects.holder.Visible=false
+end
+set_highlight(br,false)
+set_adornments(br,false)
+for bu,bv in br.drawings do
 bv.Visible=false
 end
-set_highlight(bp,false)
-for bw,bx in bp.drawings do
+esp_hide_arrow(br)
+
+br.info.character=nil
+br.info.humanoid=nil
+br.info.rootpart=nil
+
+if bq.Character and not br.refresh_pending and bo>=br.refresh_retry_at then
+br.refresh_retry_at=bo+5
+task.spawn(br.refresh_descendants,bq.Character)
+end
+continue
+end
+
+local bu=br.objects
+
+if not bu then
+continue
+end
+
+local bv=bt:GetState()
+if bt.Health<=0 or bv==Enum.HumanoidStateType.Dead then
+local bw=bu.holder
+bw.Visible=false
+set_highlight(br,false)
+set_adornments(br,false)
+for bx,by in br.drawings do
+by.Visible=false
+end
+esp_hide_arrow(br)
+continue
+end
+
+local bw=bt.RootPart or bs:FindFirstChild"HumanoidRootPart"
+if not bw then
+local bx=bu.holder
+if bx then
 bx.Visible=false
 end
+set_highlight(br,false)
+set_adornments(br,false)
+for by,bz in br.drawings do
+bz.Visible=false
+end
+esp_hide_arrow(br)
 continue
 end
 
-local bv=bs.holder
+local bx=bu.holder
 
-local bw=bu.Position
-local bx=bw.X-aZ
-local by=bw.Y-a_
-local bz=bw.Z-a0
-local bA=aX(bx*bx+by*by+bz*bz)
+local by=bw.Position
+local bz=by.X-a0
+local bA=by.Y-a1
+local bB=by.Z-a2
+local bC=aZ(bz*bz+bA*bA+bB*bB)
 
-if bh>0 and bA>bh then
-if bv.Visible then bv.Visible=false end
-set_highlight(bp,false)
-for bB,bC in bp.drawings do
-if bC.Visible then bC.Visible=false end
+if bj>0 and bC>bj then
+if bx.Visible then bx.Visible=false end
+set_highlight(br,false)
+set_adornments(br,false)
+for bD,bE in br.drawings do
+if bE.Visible then bE.Visible=false end
 end
+esp_hide_arrow(br)
 continue
 end
 
-local bB,bC,bD=al:box_solve(bu,bA)
+local bD,bE,bF=al:box_solve(bw,bC)
 
-if not bD then
-bv.Visible=false
-set_highlight(bp,false)
-for bE,bF in bp.drawings do
-bF.Visible=false
+if not bF then
+bx.Visible=false
+set_highlight(br,false)
+set_adornments(br,false)
+for bG,bH in br.drawings do
+bH.Visible=false
 end
+esp_offscreen_arrow(br,bw.Position.X,bw.Position.Y,bw.Position.Z)
 continue
 end
 
-if bv.Visible~=bD then
-bv.Visible=bD
+esp_hide_arrow(br)
+
+if bx.Visible~=bF then
+bx.Visible=bF
 end
 
-set_highlight(bp,bg~="off")
+set_highlight(br,bi)
+set_adornments(br,bi)
 
-local bE=bs.outline_stroke
-local bF=bA>820 and 1 or 0
-if bE.Transparency~=bF then
-bE.Transparency=bF
-end
-
-local bG=bs.flag
-if bf then
-if bm-(bp.info.flag_checked or 0)>0.5 then
-bp.info.flag_checked=bm
-bp.info.invisible=is_character_invisible(bq)
-end
-if bG.Visible~=bp.info.invisible then
-bG.Visible=bp.info.invisible
-end
-elseif bG.Visible then
-bG.Visible=false
+if bi then
+local bG=bu.highlight
+if bG and bG.Parent then
+local bH=ac.chams_visible or{Color=v(255,0,0),Transparency=0}
+bG.FillColor=bH.Color
+bG.FillTransparency=bH.Transparency or 0
+bG.OutlineColor=bH.Color
+bG.OutlineTransparency=bH.Transparency or 0
 end
 
-if bl then
-local bH=bp.info.bones
-if bH then
-for bI=1,#aV do
-local bJ=bp.drawings[bI]
-if not bJ then
+if(not bG or not bG.Parent)and not br.refresh_pending and bo>=br.refresh_retry_at then
+br.refresh_retry_at=bo+5
+task.spawn(br.refresh_descendants,bq.Character)
+end
+end
+
+local bG=bu.outline_stroke
+local bH=bC>820 and 1 or 0
+if bG.Transparency~=bH then
+bG.Transparency=bH
+end
+
+local bI=bu.flag
+if bh then
+if bo-(br.info.flag_checked or 0)>0.5 then
+br.info.flag_checked=bo
+br.info.invisible=is_character_invisible(bs)
+end
+if bI.Visible~=br.info.invisible then
+bI.Visible=br.info.invisible
+end
+elseif bI.Visible then
+bI.Visible=false
+end
+
+if bn then
+local bJ=br.info.bones
+if bJ then
+for bK=1,#aW do
+local bL=br.drawings[bK]
+if not bL then
 continue
 end
 
-local bK=bH[bI]
-if bK then
-local bL=bK[1]
-local bM=bK[2]
-local bN,bO=project(bL.Position.X,bL.Position.Y,bL.Position.Z)
-if bN and bN>=0 and bN<=ba and bO>=0 and bO<=bb then
-local bP,bQ=project(bM.Position.X,bM.Position.Y,bM.Position.Z)
-if bP and bP>=0 and bP<=ba and bQ>=0 and bQ<=bb then
-if not bJ.Visible then bJ.Visible=true end
-bJ.From=k(bN,bO)
-bJ.To=k(bP,bQ)
+local bM=bJ[bK]
+if bM then
+local bN=bM[1]
+local bO=bM[2]
+local bP,bQ=project(bN.Position.X,bN.Position.Y,bN.Position.Z)
+if bP and bP>=0 and bP<=bc and bQ>=0 and bQ<=bd then
+local bR,bS=project(bO.Position.X,bO.Position.Y,bO.Position.Z)
+if bR and bR>=0 and bR<=bc and bS>=0 and bS<=bd then
+if not bL.Visible then bL.Visible=true end
+bL.From=k(bP,bQ)
+bL.To=k(bR,bS)
 continue
 end
 end
 end
 
-if bJ.Visible then bJ.Visible=false end
+if bL.Visible then bL.Visible=false end
 end
 end
 else
-for bH,bI in bp.drawings do
-if bI.Visible then bI.Visible=false end
+for bJ,bK in br.drawings do
+if bK.Visible then bK.Visible=false end
 end
 end
 
-local bH=bp.info.tool and bj and bs.holder or al.cache
-if bs.weapon.Parent~=bH then
-bs.weapon.Parent=bH
-bp.refresh_offsets()
+local bJ=br.info.tool and bl and bu.holder or al.cache
+if bu.weapon.Parent~=bJ then
+bu.weapon.Parent=bJ
+br.refresh_offsets()
 end
 
-local bI=t(bC.X,bC.Y)
-if bI~=bv.Position then
-bv.Position=bI
+local bK=t(bE.X,bE.Y)
+if bK~=bx.Position then
+bx.Position=bK
 end
 
-local bJ=t(bB.X,bB.Y)
-if bJ~=bv.Size then
-bv.Size=bJ
+local bL=t(bD.X,bD.Y)
+if bL~=bx.Size then
+bx.Size=bL
 end
 
-if bi then
-local bK=bs.distance
-local bL=aY(bA/3.28).."M"
-if bK.Text~=bL then
-bK.Text=bL
+if bk then
+local bM=bu.distance
+local bN=a_(bC/3.28).."M"
+if bM.Text~=bN then
+bM.Text=bN
 end
 end
 end
 end)
 
-function al.unload(be)
-for bf,bg in b:GetPlayers()do
-al:remove_object(bg)
+function al.unload(bg)
+for bh,bi in b:GetPlayers()do
+al:remove_object(bi)
 end
 
 al.connection:Disconnect()
@@ -5156,16 +5554,16 @@ end
 
 end
 
-for aX,aY in b:GetPlayers()do
-al:create_object(aY)
+for aZ,a_ in b:GetPlayers()do
+al:create_object(a_)
 end
 
-al.player_added=b.PlayerAdded:Connect(function(aX)
-al:create_object(aX)
+al.player_added=b.PlayerAdded:Connect(function(aZ)
+al:create_object(aZ)
 end)
 
-al.player_removed=b.PlayerRemoving:Connect(function(aX)
-al:remove_object(aX)
+al.player_removed=b.PlayerRemoving:Connect(function(aZ)
+al:remove_object(aZ)
 end)
 
 task.wait()
