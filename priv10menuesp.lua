@@ -3805,12 +3805,6 @@ local aZ=aY.RootPart or aX:FindFirstChild"HumanoidRootPart"
 if aZ then
 aY:ChangeState(Enum.HumanoidStateType.Running)
 end
-else
-for aZ,_ in pairs(aX:GetDescendants())do
-if _:IsA"BasePart"then
-_.CanCollide=true
-end
-end
 end
 
 local aZ=ac.speedhack_key
@@ -4275,7 +4269,7 @@ a6,a7,a8=bk.x,bk.y,bk.z
 bc,bd=bl.x,bl.y
 ba,bb=bl.x*0.5,bl.y*0.5
 
-local bm=bf.FieldOfView
+local bm=aM or bf.FieldOfView
 if type(bm)~="number"or bm<=0 or bm>=180 then
 bm=70
 end
@@ -4322,7 +4316,7 @@ if-bi.z<=0 then
 return Vector3.new(-99999,-99999,0),false
 end
 
-local bj=C.FieldOfView
+local bj=aM or C.FieldOfView
 if type(bj)~="number"or bj<=0 or bj>=180 then
 bj=70
 end
@@ -4904,84 +4898,87 @@ true,UpperTorso=true,LowerTorso=true,
 ["Right Leg"]=true,RightUpperLeg=true,RightLowerLeg=true,RightFoot=true,
 }
 
+local function create_cham_for_part(bn)
+if bg==b.LocalPlayer then return end
+if not bn or not bn.Parent then return end
+if bn:IsA"Accessory"or bn:IsA"LocalScript"then return end
+
+local bo=bn.Name=="Head"
+local bp=bm[bn.Name]
+
+if not bo and not bp then return end
+
+if bi.adornments[bn]then return end
+
+local bq=bo and"CylinderHandleAdornment"or"BoxHandleAdornment"
+
+local br=Instance.new(bq)
+br.Name="Inline"
+br.Color3=v(255,255,255)
+br.Transparency=0.75
+br.ZIndex=2
+br.AlwaysOnTop=true
+br.AdornCullingMode="Never"
+br.Visible=false
+br.Adornee=bn
+
+local bs=Instance.new(bq)
+bs.Name="_Outline"
+bs.Color3=v(255,255,255)
+bs.Transparency=0.55
+bs.ZIndex=2
+bs.AlwaysOnTop=false
+bs.AdornCullingMode="Never"
+bs.Visible=false
+bs.Adornee=bn
+
+if bq=="CylinderHandleAdornment"then
+br.Radius=bn.Size.X/2+0.15
+br.Height=bn.Size.Y+0.3
+br.CFrame=CFrame.new(Vector3.new(),Vector3.new(0,1,0))
+bs.Radius=bn.Size.X/2+0.2
+bs.Height=bn.Size.Y+0.35
+bs.CFrame=CFrame.new(Vector3.new(),Vector3.new(0,1,0))
+else
+br.Size=bn.Size+Vector3.new(0.05,0.05,0.05)
+bs.Size=bn.Size+Vector3.new(0.1,0.1,0.1)
+end
+
+br.Parent=al.cache
+bs.Parent=al.cache
+bi.adornments[bn]={inline=br,outline=bs}
+end
+
+if bg~=b.LocalPlayer then
 local bn=Instance.new"Highlight"
 bn.Name="\0"
 bn.Adornee=bj
 bn.DepthMode=Enum.HighlightDepthMode.Occluded
 bn.Enabled=false
-bn.Parent=bj
+bn.Parent=al.cache
 bi.highlight=bn
-
-local function create_cham_for_part(bo)
-if not bo or not bo.Parent then return end
-if bo:IsA"Accessory"or bo:IsA"LocalScript"then return end
-
-local bp=bo.Name=="Head"
-local bq=bm[bo.Name]
-
-if not bp and not bq then return end
-
-if bi.adornments[bo]then return end
-
-local br=bp and"CylinderHandleAdornment"or"BoxHandleAdornment"
-
-local bs=Instance.new(br)
-bs.Name="Inline"
-bs.Color3=v(255,255,255)
-bs.Transparency=0.75
-bs.ZIndex=2
-bs.AlwaysOnTop=true
-bs.AdornCullingMode="Never"
-bs.Visible=false
-bs.Adornee=bo
-
-local bt=Instance.new(br)
-bt.Name="_Outline"
-bt.Color3=v(255,255,255)
-bt.Transparency=0.55
-bt.ZIndex=2
-bt.AlwaysOnTop=false
-bt.AdornCullingMode="Never"
-bt.Visible=false
-bt.Adornee=bo
-
-if br=="CylinderHandleAdornment"then
-bs.Radius=bo.Size.X/2+0.15
-bs.Height=bo.Size.Y+0.3
-bs.CFrame=CFrame.new(Vector3.new(),Vector3.new(0,1,0))
-bt.Radius=bo.Size.X/2+0.2
-bt.Height=bo.Size.Y+0.35
-bt.CFrame=CFrame.new(Vector3.new(),Vector3.new(0,1,0))
-else
-bs.Size=bo.Size+Vector3.new(0.05,0.05,0.05)
-bt.Size=bo.Size+Vector3.new(0.1,0.1,0.1)
-end
-
-bs.Parent=bo
-bt.Parent=bo
-bi.adornments[bo]={inline=bs,outline=bt}
-end
 
 for bo,bp in bj:GetChildren()do
 create_cham_for_part(bp)
 end
+end
 
 bh.connections[#bh.connections+1]=bk.HealthChanged:Connect(bh.health_changed)
-bh.connections[#bh.connections+1]=bj.ChildAdded:Connect(function(bo)
+bh.connections[#bh.connections+1]=bj.ChildAdded:Connect(function(bn)
 bh.refresh_bones()
-bh.tool_added(bo)
-create_cham_for_part(bo)
+bh.tool_added(bn)
+create_cham_for_part(bn)
 end)
-bh.connections[#bh.connections+1]=bj.ChildRemoved:Connect(function(bo)
+bh.connections[#bh.connections+1]=bj.ChildRemoved:Connect(function(bn)
 bh.refresh_bones()
-bh.tool_added(bo)
+bh.tool_added(bn)
 end)
 
 bh.refresh_bones()
 
-local bo=bj:FindFirstChildOfClass"Tool"
-if bo then
-bh.tool_added(bo)
+local bn=bj:FindFirstChildOfClass"Tool"
+if bn then
+bh.tool_added(bn)
 else
 bh.info.tool=nil
 bi.weapon.Parent=al.cache
@@ -5451,7 +5448,7 @@ bG.OutlineColor=bH.Color
 bG.OutlineTransparency=bH.Transparency or 0
 end
 
-if(not bG or not bG.Parent)and not br.refresh_pending and bo>=br.refresh_retry_at then
+if bq~=b.LocalPlayer and(not bG or not bG.Parent)and not br.refresh_pending and bo>=br.refresh_retry_at then
 br.refresh_retry_at=bo+5
 task.spawn(br.refresh_descendants,bq.Character)
 end
